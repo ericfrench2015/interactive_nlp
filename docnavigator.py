@@ -103,7 +103,7 @@ if uploaded_file is not None:
     st.text(f"suggestion for terms that are strong indicators: {copy_paste_strong}")
     st.text(f"suggestion for terms that are possible indicators: {copy_paste_possible}")
 
-    search_text = st.text_input('Word or short phrase of interest', 'due to')
+    search_text = st.text_input('Word or short phrase of interest', copy_paste_strong)
     st.header('Results of search:', search_text)
     st.write("""What you are seeing is the results of a search of the full document for the term(s) you input.
     The formatting aligns your search term(s) in the middle column, with the a text snippet directly before and
