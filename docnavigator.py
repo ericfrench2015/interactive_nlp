@@ -8,7 +8,7 @@ import spacy
 from textacy import extract
 from collections import Counter
 import re
-import matplotlib
+#import matplotlib
 #import matplotlib.pyplot as plt
 
 nlp = spacy.load("en_core_web_sm")
@@ -74,8 +74,11 @@ if uploaded_file is not None:
     counter = Counter(x_txt)
     df_bigrams = pd.DataFrame(counter.most_common(10),columns=['bigram','count'])
     df_bigrams.set_index('bigram', inplace=True)
-    st.pyplot(df_bigrams.sort_values(by='count').plot.barh(title='most common bigrams').figure, use_container_width=False)
-
+    try:
+        st.pyplot(df_bigrams.sort_values(by='count').plot.barh(title='most common bigrams').figure, use_container_width=False)
+    except:
+        st.subheader("error generating matplotlib chart... enjoy a dataframe instead!")
+        df_bigrams
 
 
 
