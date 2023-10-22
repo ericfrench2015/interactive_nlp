@@ -8,7 +8,8 @@ import spacy
 from textacy import extract
 from collections import Counter
 import re
-import matplotlib.pyplot as plt
+import matplotlib
+#import matplotlib.pyplot as plt
 
 nlp = spacy.load("en_core_web_sm")
 
