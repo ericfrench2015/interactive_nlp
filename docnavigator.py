@@ -6,22 +6,25 @@ import pandas as pd
 import PyPDF2
 import spacy
 from textacy import extract
+from collections import Counter
+import re
+#import matplotlib.pyplot as plt
 
 nlp = spacy.load("en_core_web_sm")
 
-
-chart_data = pd.DataFrame(
-     np.random.randn(20, 3),
-     columns=['a', 'b', 'c'])
-
-st.line_chart(chart_data)
+#https://docnavigator.streamlit.app/
 
 
-map_data = pd.DataFrame(
-    np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
-    columns=['lat', 'lon'])
+st.title("Document Analyzer POC (PDF Only for now)")
 
-st.map(map_data)
+st.write("Instructions: Upload a document, find the sections you're interested in, then download a csv of them.")
+
+
+#map_data = pd.DataFrame(
+#    np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
+#    columns=['lat', 'lon'])
+
+#st.map(map_data)
 
 
 from io import StringIO
@@ -58,5 +61,81 @@ if uploaded_file is not None:
 
     doc = nlp(working_text)
 
-    df_f = pd.DataFrame(list(extract.keyword_in_context(doc, "as", window_width=120, pad_context=True)))
-    df_f
+
+    st.header("First lets do some quick profiling of the doc")
+
+    #get top 10 ngrams...just because
+    counter = Counter()
+    x = list(extract.ngrams(doc, 2))
+    x_txt = []
+    for i in x:
+        x_txt.append(i.text.lower())
+    counter = Counter(x_txt)
+    df_bigrams = pd.DataFrame(counter.most_common(10),columns=['bigram','count'])
+    df_bigrams.set_index('bigram', inplace=True)
+    st.pyplot(df_bigrams.sort_values(by='count').plot.barh(title='most common bigrams').figure, use_container_width=False)
+
+
+
+
+
+
+
+    st.header("Now you can search for specific words or phrases and see them all in one place.")
+    st.write("""You can select one word to search for, put in an arbitrary word, or copy the whole line below.
+    If you want to search multiple terms at once, separate them with a pipe '|'
+    "If you want to ensure you match just that word and not a part of it, add a space.
+    eg. 'differ' matches 'differ' and 'different', 'differ ' just matches 'differ '.""")
+
+    st.write("if you're familiar with regular expressions, you can use those too.")
+
+
+    strong_indicators = ['due to', 'because', 'lead to', 'leads to', 'result of', 'caused by', 'therefore', 'thus',
+                         'thereby']
+    possible_indicators = ['as', 'why', 'which', 'since', 'after']
+
+    copy_paste_strong = ' |'.join(strong_indicators)
+    copy_paste_possible =  ' |'.join(possible_indicators)
+
+    st.text(f"suggestion for terms that are strong indicators: {copy_paste_strong}")
+    st.text(f"suggestion for terms that are possible indicators: {copy_paste_possible}")
+
+    search_text = st.text_input('Word or short phrase of interest', 'due to')
+    st.header('Results of search:', search_text)
+    st.write("""What you are seeing is the results of a search of the full document for the term(s) you input.
+    The formatting aligns your search term(s) in the middle column, with the a text snippet directly before and
+    after the term in question so you can get a sense of the context.""")
+
+    search_term = re.compile(search_text)
+
+    matched_terms = list(extract.keyword_in_context(doc, search_term, window_width=60, pad_context=True))
+    df = pd.DataFrame(matched_terms, columns=['text_before_term','search_term','text_after_term'])
+    df
+    #https://docs.streamlit.io/library/api-reference/data/st.dataframe
+
+
+
+    def convert_df(df):
+        return df.to_csv(index=False).encode('utf-8')
+
+
+    csv = convert_df(df)
+
+    st.header("Download the resulting sentence fragments to csv for offline analysis.")
+    st.download_button(
+        "Download Results",
+        csv,
+        "file.csv",
+        "text/csv",
+        key='download-csv'
+    )
+
+    st.header("Mapping Demo")
+    st.write("""Can pull GPE entities out of the doc and map them... but would need to make calls to 
+    a Google API and I don't feel like putting my API key up here right now... So enjoy this random
+    map.""")
+    map_data = pd.DataFrame(
+        np.random.randn(1000, 2) / [50, 50] + [37.76, -122.4],
+        columns=['lat', 'lon'])
+
+    st.map(map_data, use_container_width=False)
