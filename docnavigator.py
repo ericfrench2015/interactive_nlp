@@ -8,6 +8,7 @@ import spacy
 from textacy import extract
 from collections import Counter
 import re
+import matplotlib.pyplot as plt
 
 
 nlp = spacy.load("en_core_web_sm")
@@ -64,6 +65,8 @@ if uploaded_file is not None:
 
     st.header("First lets do some quick profiling of the doc")
 
+    st.write(f"file number of pages {len(reader.pages)}")
+
     #get top 10 ngrams...just because
     counter = Counter()
     x = list(extract.ngrams(doc, 2))
@@ -71,15 +74,43 @@ if uploaded_file is not None:
     for i in x:
         x_txt.append(i.text.lower())
     counter = Counter(x_txt)
-    df_bigrams = pd.DataFrame(counter.most_common(10),columns=['bigram','count'])
+    df_bigrams = pd.DataFrame(counter.most_common(20),columns=['bigram','count'])
     df_bigrams.set_index('bigram', inplace=True)
     try:
-        st.pyplot(df_bigrams.sort_values(by='count').plot.barh(title='most common bigrams').figure, use_container_width=False)
-    except:
-        st.subheader("error generating matplotlib chart... enjoy a dataframe instead!")
+        #st.pyplot(df_bigrams.sort_values(by='count').plot.barh(title='most common bigrams').figure, use_container_width=False)
+        #https://discuss.streamlit.io/t/cannot-change-matplotlib-figure-size/10295/8
+        st.subheader("Top 20 most common bigrams - to get a sense of the general topics being discussed.")
+        df_bigrams
+    except Exception as error:
+        print(error)
+        st.subheader("error generating matplotlib chart... have a dataframe instead!")
         df_bigrams
 
+    #get top 10 entities
+    st.subheader("Top 20 most common Named Entities (GPE, ORG, NORP, PERSON' in the doc.")
+    elist=[]
+    for e in doc.ents:
+        if e.label_ in ['GPE','ORG','NORP','PERSON']:
+            elist.append(e.text)
+            #st.write(e)
+    counter_ents = Counter(elist)
 
+    df_ents = pd.DataFrame(counter_ents.most_common(10), columns=['entities', 'count'])
+    df_ents
+
+    st.subheader("Subject/Verb/Object Triples. To put some of the above in context.")
+    svos = extract.subject_verb_object_triples(doc)
+    svo_list = []
+    for svo in svos:
+        subjects, verbs, objects = svo
+
+        subject = ' '.join([x.text for x in subjects])
+        verb = ' '.join([x.text for x in verbs])
+        object = ' '.join([x.text for x in objects])
+
+        svo_list.append([subject, verb, object])
+    df_svos = pd.DataFrame(svo_list, columns=['subject', 'verb', 'object'])
+    df_svos
 
 
 
@@ -142,3 +173,4 @@ if uploaded_file is not None:
         columns=['lat', 'lon'])
 
     st.map(map_data, use_container_width=False)
+
