@@ -25,6 +25,16 @@ def get_full_doc_from_pdf(file):
 
 def deconstruct_from_pdf(file):
 
+    def run_nlp(text):
+        #putting this in a function so I can catch and handle exceptions
+        try:
+            doc = nlp(text)
+        except:
+            text = ''
+            doc = nlp(text)
+
+        return doc
+
     def collapse_into_paragraphs(working_text_l):
         formatted_paras = []
         current_para = ''
@@ -88,7 +98,7 @@ def deconstruct_from_pdf(file):
     exploded_df = df.explode('sentence_text', ignore_index=True)
     exploded_df = exploded_df.reset_index()
     exploded_df = exploded_df.rename(columns={'index': 'sentence_num'})
-    exploded_df['sentence_spacy'] = exploded_df['sentence_text'].apply(nlp)
+    exploded_df['sentence_spacy'] = exploded_df['sentence_text'].apply(run_nlp)
     exploded_df = exploded_df[['file_name','starting_page_num','paragraph_num','sentence_num','paragraph_text','sentence_text','sentence_spacy']]
 
 
