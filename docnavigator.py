@@ -144,8 +144,8 @@ if uploaded_file is not None:
     exploded_df[['search_left', 'search_term', 'search_right']] = exploded_df.apply(
         lambda x: get_kwic(x['sentence_spacy'], search_term), axis=1)
 
-    exploded_df[['search_left', 'search_term', 'search_right']][exploded_df['search_term'].isnull() == False]
-
+    df_show = exploded_df[['search_left', 'search_term', 'search_right']][exploded_df['search_term'].isnull() == False]
+    st.dataframe(df_show, width=1000)
 
 
 
