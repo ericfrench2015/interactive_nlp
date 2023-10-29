@@ -114,8 +114,9 @@ if uploaded_file is not None:
     copy_paste_strong = ' |'.join(strong_indicators)
     copy_paste_possible =  ' |'.join(possible_indicators)
 
-    st.text(f"suggestion for terms that are strong indicators: {copy_paste_strong}")
-    st.text(f"suggestion for terms that are possible indicators: {copy_paste_possible}")
+    st.write("The following are some terms that may indicate CAUSAL statements.")
+    st.text(f"strong indicators: {copy_paste_strong}")
+    st.text(f"possible indicators: {copy_paste_possible}")
 
     search_text = st.text_input('Word or short phrase of interest', copy_paste_strong)
     st.header('Results of search:', search_text)
