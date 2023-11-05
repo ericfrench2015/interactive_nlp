@@ -8,6 +8,7 @@ if pkg not in sys.path:
 print(sys.path)
 
 import streamlit as st
+import streamlit_analytics
 st.set_page_config(layout="wide")
 
 import numpy as np
@@ -19,15 +20,15 @@ from collections import Counter
 import re
 import matplotlib.pyplot as plt
 from nlp_utils import document_deconstructor as decon
-import nlp_utils
+
 
 
 nlp = spacy.load("en_core_web_sm")
 
 #https://docnavigator.streamlit.app/
 
-
-st.title("Document Analyzer POC (PDF Only for now)")
+streamlit_analytics.start_tracking()
+st.title("Document Analyzer POC (PDF and Word Documents only for now)")
 
 st.write("Instructions: Upload a document, find the sections you're interested in, then download a csv of them.")
 
@@ -35,8 +36,18 @@ st.write("Instructions: Upload a document, find the sections you're interested i
 uploaded_file = st.file_uploader("Choose a file")
 if uploaded_file is not None:
 
-    exploded_df = decon.deconstruct_from_pdf(uploaded_file)
-    doc = decon.get_full_doc_from_pdf(uploaded_file)
+    file_ext = uploaded_file.name.split('.')[-1]
+    if file_ext == 'pdf':
+        exploded_df = decon.deconstruct_from_pdf(uploaded_file)
+        doc = decon.get_full_doc_from_pdf(uploaded_file)
+    elif file_ext in ['doc','docx']:
+        exploded_df = decon.deconstruct_from_word(uploaded_file)
+        doc = decon.get_full_doc_from_word(uploaded_file)
+    else:
+        st.subheader(f"Sorry, {file_ext} files aren't supported yet.")
+
+
+
 
     #exploded_df[['starting_page_num' ,'paragraph_num' ,'paragraph_text','sentence_text']]
     st.header("First lets do some quick profiling of the doc")
@@ -184,3 +195,4 @@ if uploaded_file is not None:
 
     #st.map(map_data, use_container_width=False)
 
+streamlit_analytics.stop_tracking()

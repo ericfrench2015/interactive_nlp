@@ -1,6 +1,7 @@
 import sys
 
 #sys.path.append('D:\\projects\\interactive_nlp\\packages')
+#?analytics=on
 
 pkg = 'packages'
 if pkg not in sys.path:
@@ -8,6 +9,7 @@ if pkg not in sys.path:
 print(sys.path)
 
 import streamlit as st
+import streamlit_analytics
 st.set_page_config(layout="wide")
 
 import numpy as np
@@ -25,7 +27,7 @@ import nlp_utils
 nlp = spacy.load("en_core_web_sm")
 
 #https://docnavigator.streamlit.app/
-
+streamlit_analytics.start_tracking()
 
 st.title("Document Processing Utilities")
 
@@ -40,5 +42,5 @@ st.write("- meeting transcript condenser: To reformat of transcripts, strip out 
          " for easy searching.")
 
 
-
+streamlit_analytics.stop_tracking()
 

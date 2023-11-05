@@ -8,6 +8,7 @@ if pkg not in sys.path:
 print(sys.path)
 
 import streamlit as st
+import streamlit_analytics
 st.set_page_config(layout="wide")
 
 import numpy as np
@@ -27,7 +28,7 @@ nlp = spacy.load("en_core_web_sm")
 
 #https://docnavigator.streamlit.app/
 
-
+streamlit_analytics.start_tracking()
 st.title("Upload a WebVTT file (the transcript you get when you record calls)")
 
 st.write("Instructions: Upload a document, find the sections you're interested in, then download a csv of them.")
@@ -75,8 +76,7 @@ if uploaded_file is not None:
 
     st.table(df[['name','nss_string','named_locations_str','named_organizations_str']][df['nss_string'] != ''])
 
-
-
+streamlit_analytics.stop_tracking()
 
 
 

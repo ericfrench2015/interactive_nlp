@@ -2,6 +2,7 @@ import PyPDF2
 import pandas as pd
 import spacy
 import re
+import docx
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -23,17 +24,36 @@ def get_full_doc_from_pdf(file):
     doc = nlp(working_text)
     return doc
 
+def get_full_doc_from_word(file):
+
+    word_doc = docx.Document(file)
+    text = ' '.join([p.text for p in word_doc.paragraphs if len(p.text) > 1])
+
+    doc = nlp(text)
+    return doc
+
+
+def run_nlp(text):
+    #putting this in a function so I can catch and handle exceptions
+    try:
+        doc = nlp(text)
+    except:
+        text = ''
+        doc = nlp(text)
+
+    return doc
+
+def paragraph_to_sentence(paragraph, split_tokens=".?!"):
+    # input paragraph of text
+    # output list of sentences
+
+    paragraph = paragraph.replace('\n', '')
+    delimiter_pattern = f'[{split_tokens}]'
+    sentences = [s.strip() for s in re.split(delimiter_pattern, paragraph) if len(s) > 2]
+
+    return sentences
+
 def deconstruct_from_pdf(file):
-
-    def run_nlp(text):
-        #putting this in a function so I can catch and handle exceptions
-        try:
-            doc = nlp(text)
-        except:
-            text = ''
-            doc = nlp(text)
-
-        return doc
 
     def collapse_into_paragraphs(working_text_l):
         formatted_paras = []
@@ -59,15 +79,7 @@ def deconstruct_from_pdf(file):
 
         return formatted_paras
 
-    def paragraph_to_sentence(paragraph, split_tokens=".?!"):
-        # input paragraph of text
-        # output list of sentences
 
-        paragraph = paragraph.replace('\n', '')
-        delimiter_pattern = f'[{split_tokens}]'
-        sentences = [s.strip() for s in re.split(delimiter_pattern, paragraph) if len(s) > 2]
-
-        return sentences
 
 
     reader = PyPDF2.PdfReader(file)
@@ -104,6 +116,41 @@ def deconstruct_from_pdf(file):
 
     return exploded_df
 
+def deconstruct_from_word(file):
+    print('foo')
+
+    def collapse_into_paragraphs(working_text_l):
+        #stubbed out to keep consistent between pdf and word
+        formatted_paras = working_text_l
+        return formatted_paras
+
+    word_doc = docx.Document(file)
+
+    #document = reader.pages
+
+    # load text
+    working_text_l = []
+    working_text = ''
+
+    for p in word_doc.paragraphs:
+        working_text_l.append([file,-1,p.text])
+
+    formatted_paras = collapse_into_paragraphs(working_text_l)
+
+
+    df = pd.DataFrame(formatted_paras, columns=['file_name' ,'starting_page_num' ,'paragraph_text'])
+    df['paragraph_num'] = df.reset_index().index
+    df = df[['file_name' ,'starting_page_num' ,'paragraph_num' ,'paragraph_text']]
+
+    df['sentence_text'] = df['paragraph_text'].apply(paragraph_to_sentence)
+
+    exploded_df = df.explode('sentence_text', ignore_index=True)
+    exploded_df = exploded_df.reset_index()
+    exploded_df = exploded_df.rename(columns={'index': 'sentence_num'})
+    exploded_df['sentence_spacy'] = exploded_df['sentence_text'].apply(run_nlp)
+    exploded_df = exploded_df[['file_name','starting_page_num','paragraph_num','sentence_num','paragraph_text','sentence_text','sentence_spacy']]
+
+    return exploded_df
 
 if __name__ == '__main__':
     test_file = "d:\\projects\\_external_files\\202310_test_docs\\20231010 Libya Humanitarian Update_HC cleared.pdf"
