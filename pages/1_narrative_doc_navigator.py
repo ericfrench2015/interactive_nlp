@@ -2,6 +2,8 @@ import sys
 
 #sys.path.append('D:\\projects\\interactive_nlp\\packages')
 
+#look into this https://github.com/tvst/st-annotated-text
+
 pkg = 'packages'
 if pkg not in sys.path:
     sys.path.append('packages')
@@ -18,34 +20,45 @@ import spacy
 from textacy import extract
 from collections import Counter
 import re
+from annotated_text import annotated_text
 import matplotlib.pyplot as plt
 from nlp_utils import document_deconstructor as decon
 
 
+@st.cache_resource
+def load_spacy():
+    nlp = spacy.load("en_core_web_sm")
+    return nlp
+nlp = load_spacy()
 
-nlp = spacy.load("en_core_web_sm")
-
-#https://docnavigator.streamlit.app/
-
-streamlit_analytics.start_tracking()
-st.title("Document Analyzer POC (PDF and Word Documents only for now)")
-
-st.write("Instructions: Upload a document, find the sections you're interested in, then download a csv of them.")
-
-
-uploaded_file = st.file_uploader("Choose a file")
-if uploaded_file is not None:
-
+@st.cache_resource
+def spacify_uploaded_file(uploaded_file):
     file_ext = uploaded_file.name.split('.')[-1]
     if file_ext == 'pdf':
         exploded_df = decon.deconstruct_from_pdf(uploaded_file)
         doc = decon.get_full_doc_from_pdf(uploaded_file)
-    elif file_ext in ['doc','docx']:
+    elif file_ext in ['doc', 'docx']:
         exploded_df = decon.deconstruct_from_word(uploaded_file)
         doc = decon.get_full_doc_from_word(uploaded_file)
     else:
         st.subheader(f"Sorry, {file_ext} files aren't supported yet.")
+    return doc, exploded_df
 
+
+#https://docnavigator.streamlit.app/
+
+streamlit_analytics.start_tracking()
+st.title("Document Analyzer POC")
+
+st.write("Instructions: This tool supports PDF and Word doc formats. Upload a document, \
+find the sections you're interested in, then download a csv of them.")
+
+
+uploaded_file = st.file_uploader("Choose a file")
+
+
+if uploaded_file is not None:
+    doc, exploded_df = spacify_uploaded_file(uploaded_file)
 
 
 
@@ -156,8 +169,80 @@ if uploaded_file is not None:
     exploded_df[['search_left', 'search_term', 'search_right']] = exploded_df.apply(
         lambda x: get_kwic(x['sentence_spacy'], search_term), axis=1)
 
-    df_show = exploded_df[['search_left', 'search_term', 'search_right']][exploded_df['search_term'].isnull() == False]
-    st.dataframe(df_show, width=1000)
+    #df_show = exploded_df[['search_left', 'search_term', 'search_right']][exploded_df['search_term'].isnull() == False]
+    #st.dataframe(df_show, width=1000)
+
+    output=''
+    for index, row in exploded_df[exploded_df['search_term'].isnull() == False].iterrows():
+        left = row['search_left']
+        mid = row['search_term']
+        right = row['search_right']
+
+        l = f"{left:>70}"
+
+        #st.text(f". {l} {mid.upper()} {right}")
+
+        output = output +  f"{index:<5}{l} {mid.upper()} {right}\n"
+
+    # Display the string using st.write()
+    st.text(output)
+
+    def expand_window(sent_idx, cnt_surround_sent):
+            # DOESN'T WORK YET
+
+        selected_rows=exploded_df.iloc[max(0, sent_idx - 3):min(sent_idx + 3, len(exploded_df))]
+
+        output = ''
+        target = sent_idx
+        for index, row in selected_rows.iterrows():
+            txt = row['sentence_text']
+            output = output + f"{txt} "
+
+            #if index < sent_idx:
+            #    output = output + f"{txt} "
+            #elif index == sent_idx:
+            #    output = output + f"{txt.upper()} "
+            #else:
+            #    output = output + f"{txt} "
+
+        return output
+
+    def annotate_and_write_text(text, search_term):
+        #bit of a hack... rerun kwic...
+        doc = nlp(text)
+        l = list(extract.keyword_in_context(doc, search_term, window_width=4000, pad_context=True))
+
+
+        words_to_annotate = []
+        if len(l) > 0:
+            for ll in l:
+                words_to_annotate.append(ll[1])
+                annotated_text(ll[0], (ll[1],""), ll[2])
+
+        #words_to_annotate = list(set(words_to_annotate))
+
+        #st.write(words_to_annotate)
+        #st.write(output)
+        #annotated_text("this",("is what I mean","searched term"), "foo")
+
+
+
+    sentid_to_expand = st.text_input('type the sentence id (the leftmost number on the row from above)\
+     corresponding to the sentence you want to see in context.')
+    if sentid_to_expand == "":
+        pass
+    else:
+        try:
+            sent_idx = int(sentid_to_expand)
+            output = expand_window(sent_idx,3)
+            annotate_and_write_text(output, search_term)
+            #st.write(output)
+        except:
+            st.write("error - please put in a number corresponding to the line you want to see.")
+
+
+
+
 
 
 
