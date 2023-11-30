@@ -52,6 +52,9 @@ st.title("Document Analyzer POC")
 
 st.write("Instructions: This tool supports PDF and Word doc formats. Upload a document, \
 find the sections you're interested in, then download a csv of them.")
+temperature = "-10"
+st.write(":red[NOTE: that this works much better with Word format. Your experience with PDF will \
+range from poor to horrifying.]")
 
 
 uploaded_file = st.file_uploader("Choose a file")
